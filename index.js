@@ -93,7 +93,7 @@ const categoriaExisteEnDB = async (slug) => {
 
 const processPage = async (page, url, siteType) => {
     console.log('Visitando página ==>', url);
-    await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
     const selectors = {
         'diariosinfronteras': {
@@ -141,7 +141,7 @@ const processPage = async (page, url, siteType) => {
     const { jobSelector, item, image, nombre, autor, categoria, body, fecha } = selectors[siteType];
 
     try {
-        await page.waitForSelector(jobSelector, { timeout: 10000 });
+        await page.waitForSelector(jobSelector, { waitUntil: 'networkidle2', timeout: 10000 });
     } catch (error) {
         console.log(`Error al esperar el selector en la página ${url}. Capturando estado de la página para depuración.`);
         await page.screenshot({ path: 'error_page.png' });
@@ -758,18 +758,18 @@ app.post('/start-scraping', async (req, res) => {
     cancelScraping = false;
     scrapingProcess = (async () => {
         await ensureDbConnection();
-
+        
         const browser = await puppeteer.launch({
-            headless: true,
-            ignoreHTTPSErrors: true,
-            executablePath: executablePath,
-            timeout: 60000, // Aumenta el tiempo de espera a 60 segundos o más
-            protocolTimeout: 60000 // Aumenta el timeout del protocolo
+            headless: true, // Ejecuta Puppeteer en modo sin interfaz gráfica
+            ignoreHTTPSErrors: true, // Ignora errores relacionados con HTTPS
+            executablePath: executablePath, // Ruta al ejecutable de Chromium o Chrome
+            // args: ['--no-sandbox', '--disable-setuid-sandbox'], // Argumentos para compatibilidad
         });
 
         const page = await browser.newPage();
         const header = randomUseragent.getRandom((ua) => ua.browserName === 'Firefox');
-        await page.setUserAgent(header);
+        // await page.setUserAgent(header);
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36');
         await page.setViewport({ width: 1920, height: 1080 });
 
         // Obtener las categorías a excluir (puedes consultar la base de datos también)
@@ -937,9 +937,6 @@ app.post('/start-scraping', async (req, res) => {
         } else {
             return res.status(400).send('Link incorrecto');
         }
-
-        // console.log('Categorías a procesar:', categoriasFiltradas);
-
 
         await page.close();
         await browser.close();
